@@ -11,21 +11,21 @@ namespace AilurusApps.NeuralNetLibTests
             var network = NeuralNetworkFactory.Build(2, 1, [3]);
 
             // 2. Define the training data (XOR Logic)
-            double[][] inputs = new double[][]
-            {
-            new[] { 0.0, 0.0 }, // Expected: 0
-            new[] { 0.0, 1.0 }, // Expected: 1
-            new[] { 1.0, 0.0 }, // Expected: 1
-            new[] { 1.0, 1.0 }  // Expected: 0
-            };
+            double[][] inputs =
+            [
+                [0.0, 0.0], // Expected: 0
+                [0.0, 1.0], // Expected: 1
+                [1.0, 0.0], // Expected: 1
+                [1.0, 1.0]  // Expected: 0
+            ];
 
-            double[][] targets = new double[][]
-            {
-            new[] { 0.0 },
-            new[] { 1.0 },
-            new[] { 1.0 },
-            new[] { 0.0 }
-            };
+            double[][] targets =
+            [
+                [0.0],
+                [1.0],
+                [1.0],
+                [0.0]
+            ];
 
             // 3. Train the network (using parameters like learning rate, momentum)
             var algorithm = new Backpropagation()
