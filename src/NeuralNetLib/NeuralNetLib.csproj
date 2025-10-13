@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>AilurusApps.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
+    <AssemblyName>AilurusApps.$(MSBuildProjectName)</AssemblyName>
   </PropertyGroup>
 
 </Project>
