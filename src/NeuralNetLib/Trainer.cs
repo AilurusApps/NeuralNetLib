@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Net;
+using System.Runtime.CompilerServices;
 
 namespace AilurusApps.NeuralNetLib
 {
@@ -82,12 +83,14 @@ namespace AilurusApps.NeuralNetLib
 
             do
             {
+                maxError = 0;
+
                 foreach (var data in _trainingData.Values)
                 {
                     maxError = TrainAndGetMaxError(neuralNetwork, data, maxError);
                     if (iteration++ >= maxIterations)
                         break;
-                }
+                }                
             } while (iteration < maxIterations && maxError > tolerance);
 
             return maxError <= tolerance;
