@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using AilurusApps.NeuralNetLib.Extensions;
+using System.Net;
 using System.Runtime.CompilerServices;
 
 namespace AilurusApps.NeuralNetLib
@@ -63,7 +64,7 @@ namespace AilurusApps.NeuralNetLib
         /// <returns>The updated maximum output error after training on the provided example.</returns>
         private double TrainAndGetMaxError(INeuralNetwork neuralNetwork, TrainingData data, double maxError)
         {
-            _algorithm.Train(neuralNetwork, data.Inputs, data.Outputs);
+            _algorithm.Train(neuralNetwork, data.Inputs, data.Reward.GetValueOrDefault(Constants.DefaultReward), data.Outputs);
             maxError = Math.Max(maxError, GetMaxOutputError(neuralNetwork, data));
             return maxError;
         }

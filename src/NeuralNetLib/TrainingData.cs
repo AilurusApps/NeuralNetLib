@@ -17,5 +17,10 @@
         /// The expected output vector for this training example.
         /// </summary>
         public double[] Outputs { get; private set; } = outputs;
+
+        /// <summary>
+        /// The positive or negative reward signal.
+        /// </summary>
+        public double? Reward { get; set; }
     }
 }

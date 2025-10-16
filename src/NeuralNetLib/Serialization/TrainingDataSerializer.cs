@@ -21,8 +21,23 @@ namespace AilurusApps.NeuralNetLib.Serialization
 
             foreach (var trainingData in trainingDataList)
             {
-                writer.WriteLine(string.Join(",", trainingData.Inputs) + ";" + string.Join(",", trainingData.Outputs));
+                writer.WriteLine(SerializeToString(trainingData));
             }
+        }
+
+        /// <summary>
+        /// Serializes a training data record into a string.
+        /// </summary>
+        /// <param name="trainingData">The training data record to serialize</param>
+        /// <returns>A string the data is serialized to.</returns>
+        private static string SerializeToString(TrainingData trainingData)
+        {
+            var line = string.Join(",", trainingData.Inputs) + ";" + string.Join(",", trainingData.Outputs);
+
+            if (trainingData.Reward != null)
+                line += $";{trainingData.Reward.Value}";
+
+            return line;
         }
 
         /// <summary>

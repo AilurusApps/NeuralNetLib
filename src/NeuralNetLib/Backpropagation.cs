@@ -18,7 +18,7 @@ namespace AilurusApps.NeuralNetLib
         /// Momentum coefficient used to smooth updates across iterations.
         /// Previous weight/bias deltas are scaled by this factor and added to the current update.
         /// </summary>
-        public double Momentum { get; set; } 
+        public double Momentum { get; set; }
 
         /// <summary>
         /// Train the provided network using the supplied input values and expected output values.
@@ -26,12 +26,13 @@ namespace AilurusApps.NeuralNetLib
         /// </summary>
         /// <param name="network">The neural network to train.</param>
         /// <param name="inputValues">Input values to feed into the network.</param>
+        /// <param name="reward">The positive or negative reward signal.</param> 
         /// <param name="expectedOutputValues">Expected target values for the network outputs.</param>
-        public void Train(INeuralNetwork network, double[] inputValues, params double[] expectedOutputValues)
+        public void Train(INeuralNetwork network, double[] inputValues, double reward, params double[] expectedOutputValues)
         {
             network.Fire(inputValues);
 
-            Backpropagate(network, expectedOutputValues);
+            Backpropagate(network, reward, expectedOutputValues);
         }
 
         /// <summary>
@@ -39,10 +40,11 @@ namespace AilurusApps.NeuralNetLib
         /// This computes gradients for output and hidden layers, then updates weights and biases.
         /// </summary>
         /// <param name="network">The neural network to update.</param>
+        /// <param name="reward">The positive or negative reward signal.</param>
         /// <param name="expectedOutputValues">Expected target values for the network outputs.</param>
-        public void Backpropagate(INeuralNetwork network, params double[] expectedOutputValues)
+        public void Backpropagate(INeuralNetwork network, double reward, params double[] expectedOutputValues)
         {
-            UpdateOutputGradients(network, expectedOutputValues);
+            UpdateOutputGradients(network, reward, expectedOutputValues);
 
             UpdateHiddenLayerGradients(network, expectedOutputValues);
 
@@ -150,13 +152,14 @@ namespace AilurusApps.NeuralNetLib
         /// Compute and assign gradients for each output neuron based on expected targets.
         /// </summary>
         /// <param name="network">The network containing output neurons.</param>
+        /// <param name="reward">The positive or negative reward signal.</param>
         /// <param name="expectedOutputValues">Target values for the outputs.</param>
-        private static void UpdateOutputGradients(INeuralNetwork network, double[] expectedOutputValues)
+        private static void UpdateOutputGradients(INeuralNetwork network, double reward, double[] expectedOutputValues)
         {
             for (var o = 0; o < expectedOutputValues.Length; o++)
             {
                 var output = network.Outputs[o];
-                output.Gradient = CalculateGradient(output, expectedOutputValues[o]);
+                output.Gradient = CalculateGradient(output, reward, expectedOutputValues[o]);
             }
         }
 
@@ -166,11 +169,12 @@ namespace AilurusApps.NeuralNetLib
         /// Uses the neuron's activation derivative and the error (target - value).
         /// </summary>
         /// <param name="node">The neuron for which to calculate the gradient.</param>
+        /// <param name="reward">The positive or negative reward signal.</param>
         /// <param name="targetValue">The expected target value for the neuron.</param>
         /// <returns>The computed gradient.</returns>
-        private static double CalculateGradient(INeuron node, double targetValue)
+        private static double CalculateGradient(INeuron node, double reward, double targetValue)
         {
-            return node.GetDerivativeValue() * (targetValue - node.Value);
+            return node.GetDerivativeValue() * (targetValue - node.Value) * reward;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

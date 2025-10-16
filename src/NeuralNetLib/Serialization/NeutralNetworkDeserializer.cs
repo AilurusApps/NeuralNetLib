@@ -47,7 +47,7 @@ namespace AilurusApps.NeuralNetLib.Serialization
             string[]? line1 = ReadNodeCountLine(reader);
             var hiddenLayerCounts = ReadHiddenLayerCounts(reader);
 
-            var neuralNetwork = NeuralNetworkFactory.Build(ReadAsInt(line1[0], "inputCount"), ReadAsInt(line1[1], "outputCount"), hiddenLayerCounts);
+            var neuralNetwork = NeuralNetworkFactory.Build(line1[0].ReadAsInt("inputCount"), line1[1].ReadAsInt("outputCount"), hiddenLayerCounts);
 
             DeserializeNodes(reader, neuralNetwork);
 
@@ -137,32 +137,6 @@ namespace AilurusApps.NeuralNetLib.Serialization
         }
 
         /// <summary>
-        /// Parse the provided string as an integer, throwing <see cref="InvalidDataException"/> if parsing fails.
-        /// </summary>
-        /// <param name="value">The string to parse.</param>
-        /// <param name="paramName">A parameter name used in the exception message if parsing fails.</param>
-        /// <returns>The parsed integer value.</returns>
-        private static int ReadAsInt(string value, string paramName)
-        {
-            if (!int.TryParse(value, out var result))
-                throw new InvalidDataException($"Invalid integer value for {paramName}.");
-            return result;
-        }
-
-        /// <summary>
-        /// Parse the provided string as a double, throwing <see cref="InvalidDataException"/> if parsing fails.
-        /// </summary>
-        /// <param name="value">The string to parse.</param>
-        /// <param name="paramName">A parameter name used in the exception message if parsing fails.</param>
-        /// <returns>The parsed double value.</returns>
-        private static double ReadAsDouble(string value, string paramName)
-        {
-            if (!double.TryParse(value, out var result))
-                throw new InvalidDataException($"Invalid double value for {paramName}.");
-            return result;
-        }
-
-        /// <summary>
         /// Read a single CSV line and parse it into an array of doubles. Returns an empty array if the line is empty.
         /// </summary>
         /// <param name="reader">The reader to read from.</param>
@@ -175,7 +149,7 @@ namespace AilurusApps.NeuralNetLib.Serialization
             if (string.IsNullOrWhiteSpace(line))
                 return [];
 
-            return line.Split(_delimiter).Select(x => ReadAsDouble(x, paramName)).ToArray();
+            return line.Split(_delimiter).Select(x => x.ReadAsDouble(paramName)).ToArray();
         }
 
         /// <summary>
