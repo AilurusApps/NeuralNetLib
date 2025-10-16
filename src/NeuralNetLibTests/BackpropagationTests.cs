@@ -48,7 +48,7 @@ namespace AilurusApps.NeuralNetLibTests
             var expectedDeltaBias = backpropagation.LearningRate * gradient;
             var expectedNewBias = initialBias + expectedDeltaBias;
 
-            backpropagation.Train(nn, [input0, input1], target);
+            backpropagation.Train(nn, [input0, input1], Constants.DefaultReward, target);
 
             Assert.Multiple(() =>
             {

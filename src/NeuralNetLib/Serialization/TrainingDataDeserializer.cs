@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using AilurusApps.NeuralNetLib.Extensions;
+using System.Text;
 
 namespace AilurusApps.NeuralNetLib.Serialization
 {
@@ -42,8 +43,14 @@ namespace AilurusApps.NeuralNetLib.Serialization
                     continue;
 
                 var split = line.Split(';');
-                yield return new TrainingData(GetInputs(split),
-                    GetOutputs(split));
+
+                if (split.Length < 2)
+                    continue;
+
+                yield return new TrainingData(GetInputs(split), GetOutputs(split))
+                {
+                    Reward = GetReward(split)
+                };
             }
         }
 
@@ -55,7 +62,7 @@ namespace AilurusApps.NeuralNetLib.Serialization
         /// <returns>An array of output values.</returns>
         private static double[] GetOutputs(string[] split)
         {
-            return split[1].Split(',').Select(s => double.Parse(s)).ToArray();
+            return split[1].Split(',').Select(s => s.ReadAsDouble("output")).ToArray();
         }
 
         /// <summary>
@@ -66,7 +73,20 @@ namespace AilurusApps.NeuralNetLib.Serialization
         /// <returns>An array of input values.</returns>
         private static double[] GetInputs(string[] split)
         {
-            return split[0].Split(',').Select(s => double.Parse(s)).ToArray();
+            return split[0].Split(',').Select(s => s.ReadAsDouble("input")).ToArray();
+        }
+
+        /// <summary>
+        /// Parse the reward portion of a split line into a double value.
+        /// </summary>
+        /// <param name="split">The line split by ';'.</param>
+        /// <returns>The double representing the reward value. null a reward has not been specified.</returns>
+        private static double? GetReward(string[] split)
+        {
+            if (split.Length < 3)
+                return null;
+
+            return split[2].ReadAsDouble("reward");
         }
     }
 }
