@@ -120,7 +120,7 @@ Pure C# Implementation: No external complex dependencies required, ensuring simp
 
 **Roadmap**
 
-[ ] Implement additional standard activation functions (e.g., Leaky ReLU, Tanh).
+[ ] Implement additional standard activation functions (e.g., Leaky ReLU).
 
 [ ] Integrate different optimization algorithms (e.g., Momentum, Adam).
 
