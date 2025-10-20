@@ -28,19 +28,7 @@ The library is designed to be easily included in any compatible C# project.
 
 1. NuGet Package
 
-If the package is published to NuGet, you can install it via the NuGet Package Manager Console:
-
-Bash
-
-dotnet add package [PACKAGE_NAME]
-
-or using the .NET CLI:
-
-Bash
-
-Install-Package [PACKAGE_NAME]
-
-Note: Replace [PACKAGE_NAME] with the official package name once published.
+*As of writing, no packages have been published for this library. Please include via DLL or manual source inclusion.
 
 2. Manual Source Code Inclusion
 
