@@ -20,7 +20,7 @@ namespace AilurusApps.NeuralNetLib.Serialization
         /// <param name="stream">The destination stream to write serialized data to.</param>
         public static void SerializeToStream(INeuralNetwork neuralNetwork, Stream stream)
         {
-            using var writer = new StreamWriter(stream, Encoding.Default);
+            using var writer = new StreamWriter(stream, Encoding.Default, leaveOpen: true);
             WriteNodeCounts(neuralNetwork, writer);
             WriteHiddenLayerLengths(neuralNetwork, writer);
             WriteBiases(neuralNetwork, writer);
