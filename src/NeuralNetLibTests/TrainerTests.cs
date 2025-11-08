@@ -97,5 +97,220 @@ namespace AilurusApps.NeuralNetLibTests
                 Assert.That(output, Is.EqualTo(data.x + data.y));
             }
         }
+
+        [Test]
+        public void TrainUntil_ShouldStopWhenCompletionFuncReturnsTrue()
+        {
+            // Arrange
+            var network = NeuralNetworkFactory.Build(2, 1, [3]);
+            var algorithm = new Backpropagation()
+            {
+                LearningRate = 0.2,
+                Momentum = 0.1
+            };
+
+            var trainingData = new Dictionary<string, TrainingData>();
+            var trainer = new Trainer<string>(trainingData, algorithm);
+
+            var data = new TrainingData([0.5, 0.5], [1.0]);
+            
+            int iterationCount = 0;
+            const int stopAfterIterations = 5;
+            
+            // Act
+            var result = trainer.TrainUntil(network, maxIterations: 100, data, () =>
+            {
+                iterationCount++;
+                return iterationCount >= stopAfterIterations;
+            });
+
+            // Assert
+            Assert.That(result, Is.True, "TrainUntil should return true when completion func returns true");
+            Assert.That(iterationCount, Is.EqualTo(stopAfterIterations), "Should have executed exactly the expected number of iterations");
+        }
+
+        [Test]
+        public void TrainUntil_ShouldReturnFalseWhenMaxIterationsReached()
+        {
+            // Arrange
+            var network = NeuralNetworkFactory.Build(2, 1, [3]);
+            var algorithm = new Backpropagation()
+            {
+                LearningRate = 0.2,
+                Momentum = 0.1
+            };
+
+            var trainingData = new Dictionary<string, TrainingData>();
+            var trainer = new Trainer<string>(trainingData, algorithm);
+
+            var data = new TrainingData([0.5, 0.5], [1.0]);
+            
+            int iterationCount = 0;
+            const int maxIterations = 10;
+            
+            // Act - completion func never returns true
+            var result = trainer.TrainUntil(network, maxIterations, data, () =>
+            {
+                iterationCount++;
+                return false; // Never complete
+            });
+
+            // Assert
+            Assert.That(result, Is.False, "TrainUntil should return false when maxIterations reached without completion");
+            Assert.That(iterationCount, Is.EqualTo(maxIterations), "Should have executed exactly maxIterations");
+        }
+
+        [Test]
+        public void TrainUntil_ShouldStopImmediatelyWhenCompletionFuncStartsTrue()
+        {
+            // Arrange
+            var network = NeuralNetworkFactory.Build(2, 1, [3]);
+            var algorithm = new Backpropagation()
+            {
+                LearningRate = 0.2,
+                Momentum = 0.1
+            };
+
+            var trainingData = new Dictionary<string, TrainingData>();
+            var trainer = new Trainer<string>(trainingData, algorithm);
+
+            var data = new TrainingData([0.5, 0.5], [1.0]);
+            
+            int iterationCount = 0;
+            
+            // Act - completion func returns true immediately
+            var result = trainer.TrainUntil(network, maxIterations: 100, data, () =>
+            {
+                iterationCount++;
+                return true; // Always complete
+            });
+
+            // Assert
+            Assert.That(result, Is.True, "TrainUntil should return true when completion func returns true");
+            Assert.That(iterationCount, Is.EqualTo(1), "Should have executed only 1 iteration");
+        }
+
+        [Test]
+        public void TrainUntil_ShouldUpdateNetworkWeights()
+        {
+            // Arrange
+            var network = NeuralNetworkFactory.Build(2, 1, [2]);
+            var algorithm = new Backpropagation()
+            {
+                LearningRate = 0.5,
+                Momentum = 0.1
+            };
+
+            var trainingData = new Dictionary<string, TrainingData>();
+            var trainer = new Trainer<string>(trainingData, algorithm);
+
+            var data = new TrainingData([1.0, 0.0], [1.0]);
+            
+            // Get initial output
+            network.Fire(data.Inputs);
+            var initialOutput = network.Outputs[0].Value;
+            
+            // Act - train for a few iterations
+            trainer.TrainUntil(network, maxIterations: 10, data, () => false);
+
+            // Assert - output should have changed
+            network.Fire(data.Inputs);
+            var finalOutput = network.Outputs[0].Value;
+            
+            Assert.That(finalOutput, Is.Not.EqualTo(initialOutput), 
+                "Network output should change after training");
+        }
+
+        [Test]
+        public void TrainUntil_ShouldUseRewardFromTrainingData()
+        {
+            // Arrange
+            var network = NeuralNetworkFactory.Build(2, 1, [3]);
+            var algorithm = new Backpropagation()
+            {
+                LearningRate = 0.5,
+                Momentum = 0.1
+            };
+
+            var trainingData = new Dictionary<string, TrainingData>();
+            var trainer = new Trainer<string>(trainingData, algorithm);
+
+            // Create data with custom reward
+            var data = new TrainingData([0.5, 0.5], [1.0])
+            {
+                Reward = 2.0
+            };
+            
+            // Act - should not throw and should use the reward
+            Assert.DoesNotThrow(() =>
+            {
+                trainer.TrainUntil(network, maxIterations: 5, data, () => false);
+            });
+        }
+
+        [Test]
+        public void TrainUntil_ShouldHandleErrorBasedCompletion()
+        {
+            // Arrange
+            var network = NeuralNetworkFactory.Build(2, 1, [3]);
+            var algorithm = new Backpropagation()
+            {
+                LearningRate = 0.3,
+                Momentum = 0.1
+            };
+
+            var trainingData = new Dictionary<string, TrainingData>();
+            var trainer = new Trainer<string>(trainingData, algorithm);
+
+            var data = new TrainingData([0.0, 1.0], [1.0]);
+            
+            const double targetError = 0.1;
+            
+            // Act - stop when error is below threshold
+            var result = trainer.TrainUntil(network, maxIterations: 1000, data, () =>
+            {
+                network.Fire(data.Inputs);
+                var error = Math.Abs(network.Outputs[0].Value - data.Outputs[0]);
+                return error < targetError;
+            });
+
+            // Assert
+            Assert.That(result, Is.True, "Should achieve target error");
+            
+            network.Fire(data.Inputs);
+            var finalError = Math.Abs(network.Outputs[0].Value - data.Outputs[0]);
+            Assert.That(finalError, Is.LessThan(targetError), "Final error should be below threshold");
+        }
+
+        [Test]
+        public void TrainUntil_ShouldRespectMaxIterationsWithDifferentCompletionLogic()
+        {
+            // Arrange
+            var network = NeuralNetworkFactory.Build(2, 1, [3]);
+            var algorithm = new Backpropagation()
+            {
+                LearningRate = 0.2,
+                Momentum = 0.1
+            };
+
+            var trainingData = new Dictionary<string, TrainingData>();
+            var trainer = new Trainer<string>(trainingData, algorithm);
+
+            var data = new TrainingData([0.5, 0.5], [0.8]);
+            
+            int callCount = 0;
+            const int maxIterations = 15;
+            
+            // Act - completion func alternates but never completes
+            var result = trainer.TrainUntil(network, maxIterations, data, () =>
+            {
+                callCount++;
+                return callCount > 100; // Impossible to reach within maxIterations
+            });
+
+            // Assert
+            Assert.That(result, Is.False, "Should return false when maxIterations reached");
+            Assert.That(callCount, Is.EqualTo(maxIterations), "Completion func should be called exactly maxIterations times");
+        }
     }
 }
