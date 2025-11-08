@@ -54,6 +54,28 @@ namespace AilurusApps.NeuralNetLib
             return false;
         }
 
+        /// <summary>
+        /// Train the provided neural network on a single training example until the completionFunc returns true
+        /// or until the maximum number of iterations is reached.
+        /// </summary>
+        /// <param name="neuralNetwork">The neural network to train.</param>
+        /// <param name="maxIterations">Maximum number of training iterations to perform.</param>
+        /// <param name="completionFunc">If this func returns true, training will stop.</param>
+        /// <param name="data">The training example to use for training.</param>
+        /// <returns>True if completionFunc returns true during training, false if maxIterations is reached. </returns>
+        public bool TrainUntil(INeuralNetwork neuralNetwork, int maxIterations, TrainingData data, Func<bool> completionFunc)
+        {
+            for (var i = 0; i < maxIterations; i++)
+            {
+                _algorithm.Train(neuralNetwork, data.Inputs, data.Reward.GetValueOrDefault(Constants.DefaultReward), data.Outputs);
+
+                if (completionFunc())
+                    return true;
+            }
+
+            return false;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         /// <summary>
         /// Perform a single training step using the configured algorithm and return the updated maximum output error.
