@@ -13,15 +13,17 @@
         /// <param name="inputCount">The number of input neurons.</param>
         /// <param name="outputCount">The number of output neurons.</param>
         /// <param name="hiddenLayerCounts">An array describing the number of neurons in each hidden layer in forward order.
+        /// <param name="activationFunction">Activation function to assign to neurons in the input and hidden layers. If unspecified, HyperTan will be used.</param>
+        /// <param name="outputLayerFunction">Activation function to assign to neurons in the output layer. If unspecified, Sigmoid will be used.</param>
         /// Pass an empty array for no hidden layers.</param>
         /// <returns>A fully constructed <see cref="INeuralNetwork"/> ready for use.</returns>
-        public static INeuralNetwork Build(int inputCount, int outputCount, int[] hiddenLayerCounts)
+        public static INeuralNetwork Build(int inputCount, int outputCount, int[] hiddenLayerCounts, IActivationFunction? activationFunction = null, IActivationFunction? outputLayerFunction = null)
         {
-            var inputs = CreateNeurons(inputCount, HyperTanFunction.Instance);
+            var inputs = CreateNeurons(inputCount, activationFunction ?? HyperTanFunction.Instance);
 
-            var hiddenLayers = CreateHiddenLayers(inputs, hiddenLayerCounts).ToArray();
+            var hiddenLayers = CreateHiddenLayers(inputs, hiddenLayerCounts, activationFunction ?? HyperTanFunction.Instance).ToArray();
 
-            var outputs = CreateAndConnectLayer(outputCount, hiddenLayers.LastOrDefault() ?? inputs, SigmoidFunction.Instance);
+            var outputs = CreateAndConnectLayer(outputCount, hiddenLayers.LastOrDefault() ?? inputs, outputLayerFunction ?? SigmoidFunction.Instance);
 
             return new NeuralNetwork(inputs, hiddenLayers, outputs);
         }
@@ -31,14 +33,15 @@
         /// </summary>
         /// <param name="inputs">The input layer to connect the first hidden layer to (if any).</param>
         /// <param name="hiddenLayerCounts">An array of node counts for each hidden layer.</param>
+        /// <param name="activationFunction">Activation function to assign to neurons in the hidden layers.</param>
         /// <returns>An enumerable of hidden layer neuron arrays in forward order.</returns>
-        private static IEnumerable<INeuron[]> CreateHiddenLayers(INeuron[] inputs, int[] hiddenLayerCounts)
+        private static IEnumerable<INeuron[]> CreateHiddenLayers(INeuron[] inputs, int[] hiddenLayerCounts, IActivationFunction activationFunction)
         {
             var previousLayer = inputs;
 
             foreach (var layerNodeCount in hiddenLayerCounts)
             {
-                var currentLayer = CreateAndConnectLayer(layerNodeCount, previousLayer, HyperTanFunction.Instance);
+                var currentLayer = CreateAndConnectLayer(layerNodeCount, previousLayer, activationFunction);
                 previousLayer = currentLayer;
                 yield return currentLayer;
             }
