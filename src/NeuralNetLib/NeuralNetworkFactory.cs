@@ -15,15 +15,24 @@
         /// <param name="hiddenLayerCounts">An array describing the number of neurons in each hidden layer in forward order.
         /// <param name="activationFunction">Activation function to assign to neurons in the input and hidden layers. If unspecified, HyperTan will be used.</param>
         /// <param name="outputLayerFunction">Activation function to assign to neurons in the output layer. If unspecified, Sigmoid will be used.</param>
+        /// <param name="weightInitializationStrategy">Weight initialization strategy to use for initializing weights. If unspecified, Xavier Normal initialization will be used.</param>
         /// Pass an empty array for no hidden layers.</param>
         /// <returns>A fully constructed <see cref="INeuralNetwork"/> ready for use.</returns>
-        public static INeuralNetwork Build(int inputCount, int outputCount, int[] hiddenLayerCounts, IActivationFunction? activationFunction = null, IActivationFunction? outputLayerFunction = null)
+        public static INeuralNetwork Build(
+            int inputCount, 
+            int outputCount, 
+            int[] hiddenLayerCounts, 
+            IActivationFunction? activationFunction = null, 
+            IActivationFunction? outputLayerFunction = null, 
+            IWeightInitializationStrategy? weightInitializationStrategy = null)
         {
             var inputs = CreateNeurons(inputCount, activationFunction ?? HyperTanFunction.Instance);
 
-            var hiddenLayers = CreateHiddenLayers(inputs, hiddenLayerCounts, activationFunction ?? HyperTanFunction.Instance).ToArray();
+            var hiddenLayers = CreateHiddenLayers(inputs, hiddenLayerCounts, activationFunction ?? HyperTanFunction.Instance, 
+                weightInitializationStrategy ?? XavierNormalInitalization.Instance).ToArray();
 
-            var outputs = CreateAndConnectLayer(outputCount, hiddenLayers.LastOrDefault() ?? inputs, outputLayerFunction ?? SigmoidFunction.Instance);
+            var outputs = CreateAndConnectLayer(outputCount, hiddenLayers.LastOrDefault() ?? inputs, outputLayerFunction ?? SigmoidFunction.Instance,
+                weightInitializationStrategy ?? XavierNormalInitalization.Instance);
 
             return new NeuralNetwork(inputs, hiddenLayers, outputs);
         }
@@ -34,14 +43,19 @@
         /// <param name="inputs">The input layer to connect the first hidden layer to (if any).</param>
         /// <param name="hiddenLayerCounts">An array of node counts for each hidden layer.</param>
         /// <param name="activationFunction">Activation function to assign to neurons in the hidden layers.</param>
+        /// <param name="weightInitializationStrategy">Weight initialization strategy to use for initializing weights.</param>
         /// <returns>An enumerable of hidden layer neuron arrays in forward order.</returns>
-        private static IEnumerable<INeuron[]> CreateHiddenLayers(INeuron[] inputs, int[] hiddenLayerCounts, IActivationFunction activationFunction)
+        private static IEnumerable<INeuron[]> CreateHiddenLayers(
+            INeuron[] inputs, 
+            int[] hiddenLayerCounts, 
+            IActivationFunction activationFunction,
+            IWeightInitializationStrategy weightInitializationStrategy)
         {
             var previousLayer = inputs;
 
             foreach (var layerNodeCount in hiddenLayerCounts)
             {
-                var currentLayer = CreateAndConnectLayer(layerNodeCount, previousLayer, activationFunction);
+                var currentLayer = CreateAndConnectLayer(layerNodeCount, previousLayer, activationFunction, weightInitializationStrategy);
                 previousLayer = currentLayer;
                 yield return currentLayer;
             }
@@ -53,12 +67,17 @@
         /// <param name="layerNodeCount">Number of neurons to create for this layer.</param>
         /// <param name="previousLayer">The layer that should be connected to the new layer as inputs.</param>
         /// <param name="activationFunction">Activation function to assign to neurons in this layer.</param>
+        /// <param name="weightInitializationStrategy">Weight initialization strategy to use for initializing weights.</param>
         /// <returns>The newly created and connected neuron array for the layer.</returns>
-        private static INeuron[] CreateAndConnectLayer(int layerNodeCount, INeuron[] previousLayer, IActivationFunction activationFunction)
+        private static INeuron[] CreateAndConnectLayer(
+            int layerNodeCount, 
+            INeuron[] previousLayer, 
+            IActivationFunction activationFunction, 
+            IWeightInitializationStrategy weightInitializationStrategy)
         {
             var currentLayer = CreateNeurons(layerNodeCount, activationFunction);
 
-            SetupConnections(previousLayer, currentLayer);
+            SetupConnections(previousLayer, currentLayer, weightInitializationStrategy);
             return currentLayer;
         }
 
@@ -72,7 +91,7 @@
         {
             return Enumerable
                 .Range(1, count)
-                .Select(x => new Neuron(activationFunction, Random.Shared.NextDouble()))
+                .Select(x => new Neuron(activationFunction, 0.01))
                 .ToArray();
         }
 
@@ -82,12 +101,13 @@
         /// </summary>
         /// <param name="currentLayer">The layer providing outputs (source neurons).</param>
         /// <param name="nextLayer">The layer receiving inputs (target neurons).</param>
-        private static void SetupConnections(INeuron[] currentLayer, INeuron[] nextLayer)
+        /// <param name="weightInitializationStrategy">Weight initialization strategy to use for initializing weights.</param>
+        private static void SetupConnections(INeuron[] currentLayer, INeuron[] nextLayer, IWeightInitializationStrategy weightInitializationStrategy)
         {
             for (var i = 0; i < currentLayer.Length; i++)
             {
                 var node = currentLayer[i];
-                node.Outputs = CreateOutputConnections(node, nextLayer, i, currentLayer.Length);
+                node.Outputs = CreateOutputConnections(node, nextLayer, i, currentLayer.Length, weightInitializationStrategy);
             }
         }
 
@@ -99,12 +119,19 @@
         /// <param name="outputNodes">The target neurons to connect to.</param>
         /// <param name="currentNodeIndex">Index of the source neuron within its layer used when populating target input arrays.</param>
         /// <param name="currentLayerNodeCount">The number of neurons in the source layer; used to size target input arrays.</param>
+        /// <param name="weightInitializationStrategy">Weight initialization strategy to use for initializing weights.</param>
         /// <returns>An array of created connections from the source neuron to each target neuron.</returns>
-        private static IConnection[] CreateOutputConnections(INeuron inputNode, INeuron[] outputNodes, int currentNodeIndex, int currentLayerNodeCount)
+        private static IConnection[] CreateOutputConnections(
+            INeuron inputNode, 
+            INeuron[] outputNodes, 
+            int currentNodeIndex, 
+            int currentLayerNodeCount, 
+            IWeightInitializationStrategy weightInitializationStrategy)
         {
             return outputNodes.Select(outputNode =>
             {
-                var connection = CreateConnection(inputNode, outputNode);
+                var initialWeight = weightInitializationStrategy.GetInitialWeight(currentLayerNodeCount, outputNodes.Length);
+                var connection = CreateConnection(inputNode, outputNode, initialWeight);
 
                 AddConnectionToIndex(currentNodeIndex, currentLayerNodeCount, outputNode, connection);
 
@@ -133,10 +160,13 @@
         /// </summary>
         /// <param name="inputNode">Source neuron for the connection.</param>
         /// <param name="outputNode">Target neuron for the connection.</param>
+        /// <param name="initialWeight">The initial weight to use for the connection.</param>
         /// <returns>The constructed <see cref="IConnection"/> instance.</returns>
-        private static IConnection CreateConnection(INeuron inputNode, INeuron outputNode)
+        private static IConnection CreateConnection(INeuron inputNode, INeuron outputNode, double initialWeight)
         {
-            return new Connection(inputNode, Random.Shared.NextDouble(), outputNode);
+            //return new Connection(inputNode, Random.Shared.NextDouble(), outputNode);
+            //return new Connection(inputNode, -1 + (Random.Shared.NextDouble() * 0.2), outputNode);
+            return new Connection(inputNode, initialWeight, outputNode);
         }
     }
 }
