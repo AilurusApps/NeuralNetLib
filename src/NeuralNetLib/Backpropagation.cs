@@ -9,6 +9,11 @@ namespace AilurusApps.NeuralNetLib
     public class Backpropagation : ITrainingAlgorithm
     {
         /// <summary>
+        /// Gets or sets a value indicating whether the training process uses an adaptive learning rate.
+        /// </summary>
+        public bool UseAdaptiveLearningRate { get; set; }
+
+        /// <summary>
         /// Learning rate (eta) used to scale weight and bias updates.
         /// Typical values are small (e.g. 0.01 - 0.1).
         /// </summary>
@@ -130,9 +135,24 @@ namespace AilurusApps.NeuralNetLib
         /// <param name="connection">The connection to update.</param>
         private void UpdateWeight(IConnection connection)
         {
-            var delta = LearningRate * connection.OutputNode.Gradient * connection.InputNode.Value;
+            var learningRate = GetLearningRate(connection.OutputNode.Gradient);
+            var delta = learningRate * connection.OutputNode.Gradient * connection.InputNode.Value;
             connection.Weight += delta + (Momentum * connection.PreviousWeightDelta);
             connection.PreviousWeightDelta = delta;
+        }
+
+        /// <summary>
+        /// Retrieves the effective learning rate for weight updates.
+        /// When adaptive learning rate is enabled, scales the base learning rate by (1.0 + |gradient|).
+        /// Otherwise, returns the base learning rate unchanged.
+        /// </summary>
+        /// <param name="gradient">The gradient value used to adaptively scale the learning rate.</param>
+        /// <returns>The learning rate to apply for the current weight update.</returns>
+        private double GetLearningRate(double gradient)
+        {
+            return UseAdaptiveLearningRate 
+                ? LearningRate * (1.0 + Math.Abs(gradient)) 
+                : LearningRate;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -142,7 +162,8 @@ namespace AilurusApps.NeuralNetLib
         /// <param name="node">The neuron whose bias will be updated.</param>
         private void UpdateBias(INeuron node)
         {
-            var delta = LearningRate * node.Gradient;
+            var learningRate = GetLearningRate(node.Gradient);
+            var delta = learningRate * node.Gradient;
             node.Bias += delta + (Momentum * node.PreviousBiasDelta);
             node.PreviousBiasDelta = delta;
         }

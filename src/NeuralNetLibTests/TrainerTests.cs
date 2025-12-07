@@ -38,7 +38,7 @@ namespace AilurusApps.NeuralNetLibTests
 
             var trainer = new Trainer<(double,double)>(trainingData, algorithm);
 
-            trainer.Retrain(network, tolerance: 0, maxIterations: 10000);
+            trainer.Retrain(network, tolerance: 0, maxIterations: 15000);
 
             // 4. Test the network
             foreach (var data in trainingData.Values)
@@ -80,7 +80,7 @@ namespace AilurusApps.NeuralNetLibTests
 
             var trainer = new Trainer<(int, int)>(trainingData, algorithm);
 
-            trainer.Retrain(network, tolerance: 0.002, maxIterations: 1000000);
+            trainer.Retrain(network, tolerance: 0.001, maxIterations: 2000000);
 
             // 4. Test the network against the training data
             foreach (var data in trainingData)
